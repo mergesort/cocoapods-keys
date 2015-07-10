@@ -15,9 +15,9 @@
 
 #pragma clang diagnostic pop
 
-+ (BOOL)resolveInstanceMethod:(SEL)name
++ (BOOL)resolveClassMethod:(SEL)sel
 {
-  NSString *key = NSStringFromSelector(name);
+  NSString *key = NSStringFromSelector(sel);
   NSString * (*implementation)(<%= name %> *, SEL) = NULL;
 <% @keys.each do |key, value| %>
   if ([key isEqualToString:@"<%= key %>"]) {
@@ -25,10 +25,11 @@
   }
 <% end %>
   if (!implementation) {
-    return [super resolveInstanceMethod:name];
+      return [super resolveClassMethod:sel];
   }
 
-  return class_addMethod([self class], name, (IMP)implementation, "@@:");
+  Class metaClass = objc_getMetaClass("<%= name %>");
+  return class_addMethod(metaClass, sel, (IMP)implementation, "@@:");
 }
 <% @keys.each do |key, value| %>
 static NSString *_podKeys<%= Digest::MD5.hexdigest(key) %>(<%= name %> *self, SEL _cmd)
@@ -52,7 +53,7 @@ static char <%= name %>Data[<%= @data_length %>] = "<%= @data.gsub('\\', '\\\\\\
 {
   return [@{
 <%- @keys.each do |key, value| -%>
-            @"<%= key %>": self.<%= key %>,
+            @"<%= key %>": <%= name %>.<%= key %>,
 <%- end -%>
   } description];
 }
